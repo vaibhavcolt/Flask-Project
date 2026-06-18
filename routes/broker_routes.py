@@ -35,3 +35,15 @@ def add_broker_account():
 def list_broker_accounts():
     accounts = BrokerAccount.query.order_by(BrokerAccount.id).all()
     return jsonify([a.to_dict() for a in accounts])
+
+
+@broker_bp.route("/broker-accounts/<int:account_id>", methods=["DELETE"])
+def delete_broker_account(account_id):
+    account = BrokerAccount.query.get(account_id)
+    if not account:
+        return jsonify({"error": "Broker account not found"}), 404
+
+    db.session.delete(account)
+    db.session.commit()
+    return jsonify({"message": f"Broker account {account_id} deleted successfully"})
+

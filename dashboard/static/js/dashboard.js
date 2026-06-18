@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (users.length === 0) {
                 usersTbody.innerHTML = `
                     <tr>
-                        <td colspan="3" class="empty-state">
+                        <td colspan="4" class="empty-state">
                             <i class="fa-regular fa-user"></i>
                             <p>No users registered yet.</p>
                         </td>
@@ -217,8 +217,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td><strong>#${u.id}</strong></td>
                         <td>${u.name}</td>
                         <td>${u.email}</td>
+                        <td>
+                            <button class="btn-delete delete-user-btn" data-id="${u.id}" title="Delete User">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </td>
                     `;
                     usersTbody.appendChild(tr);
+                });
+
+                // Attach delete handlers
+                usersTbody.querySelectorAll('.delete-user-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-id');
+                        deleteUser(id);
+                    });
                 });
             }
 
@@ -259,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accounts.length === 0) {
                 accountsTbody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="empty-state">
+                        <td colspan="5" class="empty-state">
                             <i class="fa-solid fa-wallet"></i>
                             <p>No broker accounts linked yet.</p>
                         </td>
@@ -273,8 +286,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>User ID #${a.user_id}</td>
                         <td><span class="badge badge-info"><i class="fa-solid fa-server"></i> ${a.server}</span></td>
                         <td><code>${a.account_number}</code></td>
+                        <td>
+                            <button class="btn-delete delete-acc-btn" data-id="${a.id}" title="Delete Account">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </td>
                     `;
                     accountsTbody.appendChild(tr);
+                });
+
+                // Attach delete handlers
+                accountsTbody.querySelectorAll('.delete-acc-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-id');
+                        deleteAccount(id);
+                    });
                 });
             }
 
@@ -512,6 +538,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Delete Handlers ---
+    async function deleteUser(id) {
+        if (!confirm("Are you sure you want to delete this user? This will also remove all their linked broker accounts, synced trades, and calculated commissions.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/users/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('User Deleted', 'Successfully deleted the user and associated records.', 'sync');
+                refreshData();
+            } else {
+                throw new Error(data.error || 'Failed to delete user');
+            }
+        } catch (err) {
+            showToast('Delete Failed', err.message, 'error');
+        }
+    }
+
+    async function deleteAccount(id) {
+        if (!confirm("Are you sure you want to delete this broker account? This will also remove all its synced trades and calculated commissions.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/broker-accounts/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('Account Deleted', 'Successfully deleted the broker account.', 'sync');
+                refreshData();
+            } else {
+                throw new Error(data.error || 'Failed to delete broker account');
+            }
+        } catch (err) {
+            showToast('Delete Failed', err.message, 'error');
+        }
+    }
+ 
     // --- Tab Switching Logic ---
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanes = document.querySelectorAll('.tab-pane');

@@ -2,12 +2,12 @@
 
 Run with:  python app.py
 """
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 
 from config import Config
 from utils.db import db
 from sockets.socket_events import socketio
-
+import os
 # Import models so create_all() registers every table.
 import models  # noqa: F401
 from routes.user_routes import user_bp
@@ -19,7 +19,11 @@ from workers.sync_worker import start_scheduler
 
 
 def create_app(config_class=Config):
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder="dashboard/templates",
+        static_folder="dashboard/static"
+    )
     app.config.from_object(config_class)
 
     db.init_app(app)
@@ -32,6 +36,10 @@ def create_app(config_class=Config):
     app.register_blueprint(commission_bp)
 
     @app.route("/")
+    def index():
+        return render_template("index.html")
+
+    @app.route("/health")
     def health():
         return jsonify({"status": "ok", "service": "trading-crm"})
 
@@ -60,5 +68,6 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=port,
-        debug=False
+        debug=False,
+        allow_unsafe_werkzeug=True
         )

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading CRM Dashboard & Socket Demo</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="logo-container">
+            <i class="fa-solid fa-gauge-high logo-icon"></i>
+            <div>
+                <h1>Trading CRM Dashboard</h1>
+            </div>
+        </div>
+        <div class="conn-status">
+            <span class="status-dot" id="socket-status-dot"></span>
+            <span id="socket-status-text">Connecting...</span>
+        </div>
+    </header>
+
+    <!-- Main Grid Dashboard Container -->
+    <div class="dashboard-container">
+        
+        <!-- 1. Top Global Stats -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon-box">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="metric-info">
+                    <div class="metric-title">Total CRM Users</div>
+                    <div id="stat-total-users" class="metric-value">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon-box">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="metric-info">
+                    <div class="metric-title">Linked Accounts</div>
+                    <div id="stat-total-accounts" class="metric-value">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon-box">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                </div>
+                <div class="metric-info">
+                    <div class="metric-title font-bold">Total Synced Trades</div>
+                    <div id="stat-total-trades" class="metric-value">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon-box">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+                <div class="metric-info">
+                    <div class="metric-title">Total Commissions</div>
+                    <div id="stat-total-commissions" class="metric-value">$0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Left Column Sidebar (Operations & Live Feed) -->
+        <aside class="sidebar">
+            
+            <!-- Register User Card -->
+            <div class="glass-panel">
+                <h3 class="panel-title"><i class="fa-solid fa-user-plus"></i> Register User</h3>
+                <form id="create-user-form">
+                    <div class="form-group">
+                        <label for="user-name">Full Name</label>
+                        <input type="text" id="user-name" class="form-control" placeholder="e.g. John Doe" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-email">Email Address</label>
+                        <input type="email" id="user-email" class="form-control" placeholder="e.g. john@example.com" required autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-premium">
+                        <i class="fa-solid fa-check"></i> Register User
+                    </button>
+                </form>
+            </div>
+
+            <!-- Link Account Card -->
+            <div class="glass-panel">
+                <h3 class="panel-title"><i class="fa-solid fa-key"></i> Link Broker Account</h3>
+                <form id="create-account-form">
+                    <div class="form-group">
+                        <label for="user-id-select">CRM User Link</label>
+                        <select id="user-id-select" class="form-control" required>
+                            <option value="">-- Loading Users --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="acc-number">MetaTrader 5 Login/Account ID</label>
+                        <input type="text" id="acc-number" class="form-control" placeholder="e.g. 415903860" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="acc-server">MetaTrader 5 Server</label>
+                        <input type="text" id="acc-server" class="form-control" placeholder="e.g. Exness-MT5Trial14" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="acc-password">MetaTrader 5 Investor Password</label>
+                        <input type="password" id="acc-password" class="form-control" placeholder="••••••••••••" required autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn-premium">
+                        <i class="fa-solid fa-link"></i> Link Account
+                    </button>
+                </form>
+            </div>
+
+            <!-- Live Market Feed Tickers (WebSockets) -->
+            <div class="glass-panel">
+                <h3 class="panel-title"><i class="fa-solid fa-circle-nodes"></i> Live Ticker Feed</h3>
+                <div class="ticker-container">
+                    <div class="ticker-item">
+                        <span class="ticker-symbol">EURUSD</span>
+                        <span id="price-EURUSD" class="ticker-price">1.0850</span>
+                    </div>
+                    <div class="ticker-item">
+                        <span class="ticker-symbol">GBPUSD</span>
+                        <span id="price-GBPUSD" class="ticker-price">1.2700</span>
+                    </div>
+                    <div class="ticker-item">
+                        <span class="ticker-symbol">USDJPY</span>
+                        <span id="price-USDJPY" class="ticker-price">157.20</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 3. Right Column Main Section -->
+        <main class="main-content">
+            
+            <!-- Dynamic Chart Visualization -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="panel-title" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
+                        <i class="fa-solid fa-chart-line"></i> Live WebSocket Price Graph
+                    </h3>
+                    <select id="chart-symbol-select" class="chart-select">
+                        <option value="EURUSD">EURUSD</option>
+                        <option value="GBPUSD">GBPUSD</option>
+                        <option value="USDJPY">USDJPY</option>
+                    </select>
+                </div>
+                <div style="position: relative; height: calc(100% - 40px); width: 100%;">
+                    <canvas id="livePriceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- CRM Operation Panel -->
+            <div class="glass-panel">
+                <h3 class="panel-title"><i class="fa-solid fa-sliders"></i> Operations Control Hub</h3>
+                <div class="control-hub">
+                    
+                    <!-- Sync Trigger Box -->
+                    <div class="control-item">
+                        <h4>Sync Trade History</h4>
+                        <p class="control-desc">Connects to MetaTrader 5 server, pulls recent trades (real or mock), filters out duplicates, and logs new trades to the CRM database.</p>
+                        <div class="form-group" style="margin-top:auto; margin-bottom: 0.5rem;">
+                            <select id="sync-account-select" class="form-control">
+                                <option value="">-- Select Account --</option>
+                            </select>
+                        </div>
+                        <button id="btn-sync-trades" class="btn-premium">
+                            <i class="fa-solid fa-arrows-rotate"></i> Sync Account Trades
+                        </button>
+                    </div>
+                    
+                    <!-- Calculate Trigger Box -->
+                    <div class="control-item">
+                        <h4>Calculate Commission</h4>
+                        <p class="control-desc">Processes all uncommissioned closed trades for the selected account using configured per-lot commission rate (e.g. $5.00/lot).</p>
+                        <div class="form-group" style="margin-top:auto; margin-bottom: 0.5rem;">
+                            <select id="calc-account-select" class="form-control">
+                                <option value="">-- Select Account --</option>
+                            </select>
+                        </div>
+                        <button id="btn-calc-commissions" class="btn-premium">
+                            <i class="fa-solid fa-calculator"></i> Calculate Commissions
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tabbed Logs Grid -->
+            <div class="glass-panel">
+                <div class="tab-menu">
+                    <button class="tab-btn active" data-tab="trades">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i> Synced Trades
+                    </button>
+                    <button class="tab-btn" data-tab="commissions">
+                        <i class="fa-solid fa-dollar-sign"></i> Commission Log
+                    </button>
+                    <button class="tab-btn" data-tab="entities">
+                        <i class="fa-solid fa-users"></i> Users & Accounts
+                    </button>
+                </div>
+
+                <!-- Tab 1: Synced Trades -->
+                <div class="tab-pane active" id="tab-trades">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ticket</th>
+                                    <th>Account</th>
+                                    <th>Symbol</th>
+                                    <th>Volume (Lots)</th>
+                                    <th>Profit/Loss ($)</th>
+                                    <th>Status</th>
+                                    <th>Commission</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-tbody">
+                                <!-- Populated Dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Commission Log -->
+                <div class="tab-pane" id="tab-commissions">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Commission ID</th>
+                                    <th>Trade / Ticket</th>
+                                    <th>Symbol</th>
+                                    <th>Volume (Lots)</th>
+                                    <th>Earned Commission ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commissions-tbody">
+                                <!-- Populated Dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Users & Accounts -->
+                <div class="tab-pane" id="tab-entities">
+                    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.5rem;">
+                        <div>
+                            <h4 style="margin-bottom: 0.75rem; font-family: var(--font-heading);">Registered Users</h4>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-tbody">
+                                        <!-- Populated Dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 0.75rem; font-family: var(--font-heading);">Broker Accounts</h4>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>CRM User</th>
+                                            <th>Server</th>
+                                            <th>Account Number</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="accounts-tbody">
+                                        <!-- Populated Dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Main Controller Script -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

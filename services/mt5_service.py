@@ -78,9 +78,16 @@ class RealMT5Service(BaseMT5Service):
     def fetch_trades(self, account):
         import MetaTrader5 as mt5  # noqa: N813
 
-        deals = mt5.history_deals_get() or []
+        from_date = datetime(2020, 1, 1)
+        to_date = datetime.now()
+
+        deals = mt5.history_deals_get(from_date, to_date) or []
         trades = []
         for d in deals:
+            # entry == 1 corresponds to DEAL_ENTRY_OUT (exit deal / closed position)
+            if getattr(d, "entry", None) != 1:
+                continue
+
             trades.append(
                 {
                     "ticket": str(d.ticket),

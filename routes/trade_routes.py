@@ -58,3 +58,16 @@ def sync_trades(account_id):
         return jsonify({"error": "Unable to connect MT5"}), 502
 
     return jsonify({"synced_trades": synced})
+
+
+@trade_bp.route("/trades", methods=["GET"])
+def list_trades():
+    trades = Trade.query.order_by(Trade.close_time.desc(), Trade.id.desc()).all()
+    result = []
+    for t in trades:
+        trade_dict = t.to_dict()
+        # Include commission amount for easier frontend display
+        trade_dict["commission_amount"] = t.commission.commission_amount if t.commission else None
+        result.append(trade_dict)
+    return jsonify(result)
+

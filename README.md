@@ -1,6 +1,6 @@
 # Trading CRM with Real-time Premium Dashboard
 
-A comprehensive Trading CRM built with **Flask, SQLAlchemy, SQLite, Flask-SocketIO, APScheduler**, and a (mock) **MetaTrader 5** integration.
+A comprehensive Trading CRM built with **Flask, SQLAlchemy, SQLite, Flask-SocketIO, and a (mock) **MetaTrader 5** integration.
 
 This project features a **premium glassmorphic dark-mode dashboard** that visualizes metrics in real-time, displays live charts, and demonstrates all background operations (trade syncing, commission calculation) and WebSocket feeds.
 
@@ -18,14 +18,14 @@ This project features a **premium glassmorphic dark-mode dashboard** that visual
 
 | Phase / Feature | Details |
 |---|---|
-| **Real-time Premium Dashboard** | Glassmorphic dark-mode UI with metrics cards, real-time tickers, live Chart.js price feeds, Operation Hub controls, and toast notifications. |
+| **Real-time Premium Dashboard** | Real-time tickers, live Chart.js price feeds, Operation Hub controls, and toast notifications. |
 | **User Management** | Register users, list active users, and delete users (with full database cascade deletes). |
 | **Broker Account Management** | Link broker accounts (MetaTrader 5 servers/credentials), list linked accounts, and delete broker accounts. |
 | **MT5 Integration** | Supports Mock MT5 (deterministic test trades) and Real MT5 (requires Windows and active terminal). |
 | **Trade Synchronization** | Syncs trades for any registered broker account, featuring ticket duplicate prevention. |
 | **Commission Engine** | Calculates commissions on closed trades (`$5 per lot` / volume), saves log records, and emits notifications. |
 | **WebSockets (Socket.IO)** | Multi-channel market data feeds (`market_data` rooms) and real-time calculation notifications (`commission_created`). |
-| **Background Worker** | APScheduler periodic job that automatically syncs and calculates commissions for all broker accounts. |
+
 
 ---
 

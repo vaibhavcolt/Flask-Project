@@ -7,7 +7,10 @@ This project features a **premium glassmorphic dark-mode dashboard** that visual
 ---
 
 ### Dashboard Preview
-![Trading CRM Dashboard](dashboard_screenshot.png)
+
+<p align="center">
+  <img src="./dashboard_screenshot.png" alt="Trading CRM Dashboard" width="100%">
+</p>
 
 ---
 

@@ -21,7 +21,12 @@ def calculate_commissions_for_account(account_id):
     Flow: get trades -> calculate -> save -> emit `commission_created`.
     Returns the number of commissions created.
     """
-    trades = Trade.query.filter_by(account_id=account_id).all()
+    # Only get trades that are closed (close_time is not null)
+    # To ensure commissions are calculated only after a trade is completed/closed
+    trades = Trade.query.filter(
+    Trade.account_id == account_id,
+    Trade.close_time.isnot(None)
+    ).all()
     created = 0
 
     for trade in trades:

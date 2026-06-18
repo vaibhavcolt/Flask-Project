@@ -1,27 +1,28 @@
-# Trading CRM Backend
+# Trading CRM with Real-time Premium Dashboard
 
-A mini Trading CRM backend built with **Flask, SQLAlchemy, MySQL, Flask-SocketIO,
-APScheduler** and a (mock) **MetaTrader5** integration.
+A comprehensive Trading CRM built with **Flask, SQLAlchemy, SQLite, Flask-SocketIO, APScheduler**, and a (mock) **MetaTrader 5** integration.
 
-It manages Users, Broker Accounts, Trades, Commissions, real-time WebSocket
-notifications, a live market data feed, and a background trade-sync worker.
+This project features a **premium glassmorphic dark-mode dashboard** that visualizes metrics in real-time, displays live charts, and demonstrates all background operations (trade syncing, commission calculation) and WebSocket feeds.
+
+---
+
+### Dashboard Preview
+![Trading CRM Dashboard](dashboard_screenshot.png)
 
 ---
 
 ## Features / Phases
 
-| Phase | Feature |
-|-------|---------|
-| 1–3   | Project setup, MySQL schema, SQLAlchemy models |
-| 4     | User APIs — create / list |
-| 5     | Broker Account API — add |
-| 6     | MT5 integration (Mock by default, Real optional) |
-| 7     | Trade synchronization with duplicate prevention |
-| 8–9   | Commission engine + API (`$5 per lot`) |
-| 10    | WebSocket setup (Flask-SocketIO) |
-| 11    | Live market data feed (`market_data` every second) |
-| 12    | `commission_created` notifications |
-| 13    | APScheduler background worker (sync → commission) |
+| Phase / Feature | Details |
+|---|---|
+| **Real-time Premium Dashboard** | Glassmorphic dark-mode UI with metrics cards, real-time tickers, live Chart.js price feeds, Operation Hub controls, and toast notifications. |
+| **User Management** | Register users, list active users, and delete users (with full database cascade deletes). |
+| **Broker Account Management** | Link broker accounts (MetaTrader 5 servers/credentials), list linked accounts, and delete broker accounts. |
+| **MT5 Integration** | Supports Mock MT5 (deterministic test trades) and Real MT5 (requires Windows and active terminal). |
+| **Trade Synchronization** | Syncs trades for any registered broker account, featuring ticket duplicate prevention. |
+| **Commission Engine** | Calculates commissions on closed trades (`$5 per lot` / volume), saves log records, and emits notifications. |
+| **WebSockets (Socket.IO)** | Multi-channel market data feeds (`market_data` rooms) and real-time calculation notifications (`commission_created`). |
+| **Background Worker** | APScheduler periodic job that automatically syncs and calculates commissions for all broker accounts. |
 
 ---
 
@@ -62,10 +63,10 @@ python app.py
 ```
 
 Server starts on `http://localhost:5000` with:
-- REST APIs
-- Socket.IO endpoint (same host/port)
-- live market feed broadcasting every second
-- background worker running every 60s
+- **Interactive UI**: Navigate to `http://localhost:5000/` to access the Dashboard
+- **REST APIs**: Available on the same host
+- **Socket.IO**: Real-time market feed and notifications
+- **Periodic Background Worker**: Automatically runs every 60 seconds
 
 ---
 
@@ -73,36 +74,53 @@ Server starts on `http://localhost:5000` with:
 
 ### Users
 
-**Create user** — `POST /users`
-```json
-{ "name": "Vaibhav", "email": "vaibhav@gmail.com" }
-```
-Response → `{ "message": "User created", "id": 1 }`
+* **Create user** — `POST /users`
+  ```json
+  { "name": "Vaibhav", "email": "vaibhav@gmail.com" }
+  ```
+  Response: `{ "message": "User created", "id": 1 }`
 
-**List users** — `GET /users`
-```json
-[ { "id": 1, "name": "Vaibhav", "email": "vaibhav@gmail.com", "created_at": "..." } ]
-```
+* **List users** — `GET /users`
+  Response: `[ { "id": 1, "name": "Vaibhav", "email": "vaibhav@gmail.com", "created_at": "..." } ]`
+
+* **Delete user (with cascade)** — `DELETE /users/<user_id>`
+  Deletes the user and automatically purges all linked broker accounts, trades, and commissions.
+  Response: `{ "message": "User 1 deleted successfully" }`
 
 ### Broker Accounts
 
-**Add broker account** — `POST /broker-accounts`
-```json
-{ "user_id": 1, "account_number": "123456", "server": "MetaQuotes-Demo", "password": "secret" }
-```
-Response → `{ "message": "Broker account added", "id": 1 }`
+* **Add broker account** — `POST /broker-accounts`
+  ```json
+  { "user_id": 1, "account_number": "123456", "server": "MetaQuotes-Demo", "password": "secret" }
+  ```
+  Response: `{ "message": "Broker account added", "id": 1 }`
+
+* **List broker accounts** — `GET /broker-accounts`
+  Response: `[ { "id": 1, "user_id": 1, "account_number": "123456", "server": "MetaQuotes-Demo", "created_at": "..." } ]`
+
+* **Delete broker account (with cascade)** — `DELETE /broker-accounts/<account_id>`
+  Deletes the broker account and automatically purges its associated trades and commissions.
+  Response: `{ "message": "Broker account 1 deleted successfully" }`
 
 ### Trades
 
-**Sync trades** — `POST /sync-trades/<account_id>`
-Connects to MT5, fetches trade history, stores new trades (skips duplicate tickets).
-Response → `{ "synced_trades": 3 }`
+* **Sync trades** — `POST /sync-trades/<account_id>`
+  Connects to MT5, fetches trade history, stores new trades (skips duplicate tickets).
+  Response: `{ "synced_trades": 3 }`
+
+* **List trades** — `GET /trades`
+  Returns all synced trades, including their computed commission amounts.
+  Response: `[ { "id": 1, "ticket": "1001", "account_id": 1, "symbol": "EURUSD", "volume": 0.5, "profit": 50.0, "commission_amount": 2.5, ... } ]`
 
 ### Commissions
 
-**Calculate commission** — `POST /calculate-commission/<account_id>`
-Generates `$5 × volume` per trade, saves it, emits `commission_created`.
-Response → `{ "commissions_created": 3 }`
+* **Calculate commission** — `POST /calculate-commission/<account_id>`
+  Generates `$5 × volume` per trade, saves it, and emits a `commission_created` socket event.
+  Response: `{ "commissions_created": 3 }`
+
+* **List commissions** — `GET /commissions`
+  Returns all computed commissions along with referenced trade details.
+  Response: `[ { "id": 1, "trade_id": 1, "commission_amount": 2.5, "ticket": "1001", "symbol": "EURUSD", "volume": 0.5, ... } ]`
 
 ---
 
@@ -161,6 +179,12 @@ curl -X POST localhost:5000/sync-trades/1
 curl -X POST localhost:5000/calculate-commission/1
 
 # 6. commission_created events arrive over the WebSocket
+
+# 7. Delete broker account -> Purges account, associated trades, and commissions
+curl -X DELETE localhost:5000/broker-accounts/1
+
+# 8. Delete user -> Purges user, linked broker accounts, trades, and commissions
+curl -X DELETE localhost:5000/users/1
 ```
 
 ---
